@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{{ url_for('monthly_attendance') }}" class="btn btn-primary">Monthly Attendance View</a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Add New Employee</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_employee') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Employee Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="employee_id" class="form-label">Employee ID</label>
+                        <input type="text" class="form-control" id="employee_id" name="employee_id" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Employee</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Employee List</h4>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Employee ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in employees %}
+                        <tr>
+                            <td>{{ employee.id }}</td>
+                            <td>{{ employee.name }}</td>
+                            <td>{{ employee.employee_id }}</td>
+                            <td>
+                                <a href="{{ url_for('view_attendance', employee_id=employee.employee_id) }}" 
+                                   class="btn btn-sm btn-info">View Attendance</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>Attendance Records</h4>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Employee</th>
+                            <th>Entry Time</th>
+                            <th>Exit Time</th>
+                            <th>Total Hours</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attendance in attendances %}
+                        <tr>
+                            <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ attendance.employee.name }}</td>
+                            <td>{{ attendance.entry_time.strftime('%H:%M:%S') }}</td>
+                            <td>{{ attendance.exit_time.strftime('%H:%M:%S') if attendance.exit_time else 'Not marked' }}</td>
+                            <td>
+                                {% if attendance.exit_time %}
+                                    {{ ((attendance.exit_time - attendance.entry_time).total_seconds() / 3600)|round(2) }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if attendance.overtime_minutes > 0 %}
+                                    {% if attendance.overtime_approved is none %}
+                                        <span class="badge bg-warning">{{ attendance.overtime_minutes }} mins overtime pending</span>
+                                    {% elif attendance.overtime_approved %}
+                                        <span class="badge bg-success">{{ attendance.overtime_minutes }} mins overtime approved</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Overtime rejected</span>
+                                    {% endif %}
+                                {% elif attendance.deduction_minutes > 0 %}
+                                    <span class="badge bg-danger">{{ attendance.deduction_minutes }} mins short</span>
+                                {% else %}
+                                    <span class="badge bg-success">Regular hours</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if attendance.overtime_minutes > 0 and attendance.overtime_approved is none %}
+                                    <form method="POST" action="{{ url_for('approve_overtime', attendance_id=attendance.id) }}" class="d-inline">
+                                        <input type="hidden" name="action" value="approve">
+                                        <button type="submit" class="btn btn-sm btn-success">Approve OT</button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('approve_overtime', attendance_id=attendance.id) }}" class="d-inline">
+                                        <input type="hidden" name="action" value="reject">
+                                        <button type="submit" class="btn btn-sm btn-danger">Reject OT</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
